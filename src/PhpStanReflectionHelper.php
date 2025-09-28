@@ -65,17 +65,17 @@ final readonly class PhpStanReflectionHelper
 	}
 
 	/**
-	 * @param array<string, bool> $pick
+	 * @param array<string, bool>|null $pick
 	 * @return iterable<string, ExtendedPropertyReflection>
 	 */
-	public function getWritablePropertiesFromReflection(ClassReflection $reflection, array $pick = []): iterable
+	public function getWritablePropertiesFromReflection(ClassReflection $reflection, ?array $pick = null): iterable
 	{
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
 			if ($property->isStatic()) {
 				continue;
 			}
 			$propertyName = $property->getName();
-			if ($pick !== [] && !isset($pick[$propertyName])) {
+			if ($pick !== null && !isset($pick[$propertyName])) {
 				continue;
 			}
 
@@ -108,17 +108,17 @@ final readonly class PhpStanReflectionHelper
 	}
 
 	/**
-	 * @param array<string, bool> $pick
+	 * @param array<string, bool>|null $pick
 	 * @return iterable<string, ExtendedPropertyReflection>
 	 */
-	public function getReadablePropertiesFromReflection(ClassReflection $reflection, array $pick = []): iterable
+	public function getReadablePropertiesFromReflection(ClassReflection $reflection, ?array $pick = null): iterable
 	{
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
 			if ($property->isStatic()) {
 				continue;
 			}
 			$propertyName = $property->getName();
-			if ($pick !== [] && !isset($pick[$propertyName])) {
+			if ($pick !== null && !isset($pick[$propertyName])) {
 				continue;
 			}
 
