@@ -8,6 +8,7 @@ use PHPStan\Reflection\ExtendedMethodReflection;
 use PHPStan\Reflection\ExtendedParameterReflection;
 use PHPStan\Reflection\ExtendedPropertyReflection;
 use PHPStan\Type\Type;
+use ReflectionProperty;
 use Shredio\PhpStanHelpers\Exception\InvalidTypeException;
 
 /**
@@ -68,23 +69,27 @@ final readonly class PhpStanReflectionHelper
 	 * @param array<string, bool>|null $pick
 	 * @return iterable<string, ExtendedPropertyReflection>
 	 */
-	public function getWritablePropertiesFromReflection(ClassReflection $reflection, ?array $pick = null): iterable
+	public function getWritablePropertiesFromReflection(
+		ClassReflection $reflection,
+		?array $pick = null,
+		bool $includeStatic = false,
+	): iterable
 	{
+		$scope = new OutOfClassScope();
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
-			if ($property->isStatic()) {
+			if (!$includeStatic && $property->isStatic()) {
 				continue;
 			}
+
 			$propertyName = $property->getName();
 			if ($pick !== null && !isset($pick[$propertyName])) {
 				continue;
 			}
-
-			$propertyReflection = $reflection->getProperty($propertyName, new OutOfClassScope());
-			if (!$propertyReflection->isWritable()) {
+			if (!$this->isWritableFromOutside($property)) {
 				continue;
 			}
 
-			yield $propertyName => $propertyReflection;
+			yield $propertyName => $reflection->getProperty($propertyName, $scope);
 		}
 	}
 
@@ -111,10 +116,15 @@ final readonly class PhpStanReflectionHelper
 	 * @param array<string, bool>|null $pick
 	 * @return iterable<string, ExtendedPropertyReflection>
 	 */
-	public function getReadablePropertiesFromReflection(ClassReflection $reflection, ?array $pick = null): iterable
+	public function getReadablePropertiesFromReflection(
+		ClassReflection $reflection,
+		?array $pick = null,
+		bool $includeStatic = false,
+	): iterable
 	{
+		$scope = new OutOfClassScope();
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
-			if ($property->isStatic()) {
+			if (!$includeStatic && $property->isStatic()) {
 				continue;
 			}
 			$propertyName = $property->getName();
@@ -122,13 +132,40 @@ final readonly class PhpStanReflectionHelper
 				continue;
 			}
 
-			$propertyReflection = $reflection->getProperty($propertyName, new OutOfClassScope());
-			if (!$propertyReflection->isReadable()) {
+			if (!$this->isReadableFromOutside($property)) {
 				continue;
 			}
 
-			yield $propertyName => $propertyReflection;
+			yield $propertyName => $reflection->getProperty($propertyName, $scope);
 		}
+	}
+
+	public function isReadableFromOutside(ReflectionProperty $property): bool
+	{
+		if (PHP_VERSION_ID >= 80400) {
+			if ($property->hasHooks()) {
+				return $property->hasHook(\PropertyHookType::Get);
+			}
+		}
+
+		return $property->isPublic();
+	}
+
+	public function isWritableFromOutside(ReflectionProperty $property): bool
+	{
+		if ($property->isReadOnly()) {
+			return false;
+		}
+		if (PHP_VERSION_ID >= 80400) {
+			if ($property->hasHooks()) {
+				return $property->hasHook(\PropertyHookType::Set);
+			}
+			if ($property->isProtectedSet() || $property->isPrivateSet()) {
+				return false;
+			}
+		}
+
+		return $property->isPublic();
 	}
 
 }
