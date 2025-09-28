@@ -8,4 +8,4 @@ parameters:
 			tooWideThrowType: true
 		implicitThrows: false
 		checkedExceptionClasses:
-			- Shredio\\PhpStanHelpers\Exception\RuntimeException
+			- Shredio\PhpStanHelpers\Exception\RuntimeException
