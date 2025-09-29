@@ -10,16 +10,16 @@ use Shredio\PhpStanHelpers\Exception\CannotCombinePickWithOmitException;
 final readonly class PropertyPicker
 {
 
-	/** @var array<non-empty-string, bool>|null */
+	/** @var array<string, bool>|null */
 	private ?array $pick;
 
-	/** @var array<non-empty-string, bool>|null */
+	/** @var array<string, bool>|null */
 	private ?array $omit;
 
 
 	/**
-	 * @param list<non-empty-string> $pick
-	 * @param list<non-empty-string> $omit
+	 * @param list<string> $pick
+	 * @param list<string> $omit
 	 *
 	 * @throws CannotCombinePickWithOmitException
 	 */
