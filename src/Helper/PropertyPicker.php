@@ -64,4 +64,28 @@ final readonly class PropertyPicker
 		}
 	}
 
+	/**
+	 * @param list<string>|null $pick
+	 */
+	public static function pick(?array $pick = null): self
+	{
+		try {
+			return new self(pick: $pick);
+		} catch (CannotCombinePickWithOmitException) {
+			throw new LogicException('This should never happen');
+		}
+	}
+
+	/**
+	 * @param list<string>|null $omit
+	 */
+	public static function omit(?array $omit = null): self
+	{
+		try {
+			return new self(omit: $omit);
+		} catch (CannotCombinePickWithOmitException) {
+			throw new LogicException('This should never happen');
+		}
+	}
+
 }
