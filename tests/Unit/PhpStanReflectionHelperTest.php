@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use PHPStan\PhpDoc\TypeStringResolver;
 use PHPStan\Testing\PHPStanTestCase;
+use Shredio\PhpStanHelpers\Exception\CannotCombinePickWithOmitException;
 use Shredio\PhpStanHelpers\Exception\EmptyTypeException;
 use Shredio\PhpStanHelpers\Exception\InvalidTypeException;
 use Shredio\PhpStanHelpers\Exception\NonConstantTypeException;
+use Shredio\PhpStanHelpers\Helper\PropertyPicker;
 use Shredio\PhpStanHelpers\PhpStanReflectionHelper;
 use Tests\Common\AccessObject;
 
@@ -18,10 +20,9 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), includeStatic: true)
+		);
 
 		self::assertSame([
 			'regularPublic', 'hookSet', 'hookBoth', 'staticPublic',
@@ -33,10 +34,9 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class)),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class))
+		);
 
 		self::assertSame([
 			'regularPublic', 'hookSet', 'hookBoth',
@@ -48,13 +48,12 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), [
-				'regularPublic' => true,
-				'staticPublic' => true,
-			], includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker([
+				'regularPublic',
+				'staticPublic',
+			]), includeStatic: true)
+		);
 
 		self::assertSame([
 			'regularPublic', 'staticPublic',
@@ -66,10 +65,9 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), [], includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker([]), includeStatic: true)
+		);
 
 		self::assertSame([], $properties);
 	}
@@ -79,10 +77,9 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), includeStatic: true)
+		);
 
 		self::assertSame([
 			'regularPublic', 'readonlyPublic', 'hookGet', 'hookBoth', 'protectedSet', 'privateSet', 'staticPublic',
@@ -94,10 +91,9 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class)),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class))
+		);
 
 		self::assertSame([
 			'regularPublic', 'readonlyPublic', 'hookGet', 'hookBoth', 'protectedSet', 'privateSet',
@@ -109,13 +105,12 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), [
-				'regularPublic' => true,
-				'staticPublic' => true,
-			], includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker([
+				'regularPublic',
+				'staticPublic',
+			]), includeStatic: true)
+		);
 
 		self::assertSame([
 			'regularPublic', 'staticPublic',
@@ -127,12 +122,95 @@ final class PhpStanReflectionHelperTest extends PHPStanTestCase
 		$helper = $this->createHelper();
 		$reflectionProvider = self::createReflectionProvider();
 
-		$properties = array_keys(iterator_to_array(
-			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), [], includeStatic: true),
-			true,
-		));
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker([]), includeStatic: true)
+		);
 
 		self::assertSame([], $properties);
+	}
+
+	public function testWritablePropertiesOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(omit: [
+				'hookSet', 'staticPublic',
+			]), includeStatic: true)
+		);
+
+		self::assertSame([
+			'regularPublic', 'hookBoth',
+		], $properties);
+	}
+
+	public function testWritablePropertiesEmptyOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		$properties = array_keys(
+			$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(omit: []), includeStatic: true)
+		);
+
+		self::assertSame([
+			'regularPublic', 'hookSet', 'hookBoth', 'staticPublic',
+		], $properties);
+	}
+
+	public function testReadablePropertiesOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(omit: [
+				'regularPublic', 'hookBoth', 'staticPublic',
+			]), includeStatic: true)
+		);
+
+		self::assertSame([
+			'readonlyPublic', 'hookGet', 'protectedSet', 'privateSet',
+		], $properties);
+	}
+
+	public function testReadablePropertiesEmptyOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		$properties = array_keys(
+			$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(omit: []), includeStatic: true)
+		);
+
+		self::assertSame([
+			'regularPublic', 'readonlyPublic', 'hookGet', 'hookBoth', 'protectedSet', 'privateSet', 'staticPublic',
+		], $properties);
+	}
+
+	public function testWritablePropertiesPickAndOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		self::expectException(CannotCombinePickWithOmitException::class);
+		$helper->getWritablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(
+			pick: ['regularPublic', 'hookSet', 'hookBoth'],
+			omit: ['hookSet'],
+		), includeStatic: true);
+	}
+
+	public function testReadablePropertiesPickAndOmit(): void
+	{
+		$helper = $this->createHelper();
+		$reflectionProvider = self::createReflectionProvider();
+
+		self::expectException(CannotCombinePickWithOmitException::class);
+		$helper->getReadablePropertiesFromReflection($reflectionProvider->getClass(AccessObject::class), new PropertyPicker(
+			pick: ['regularPublic', 'readonlyPublic', 'hookGet', 'staticPublic'],
+			omit: ['readonlyPublic', 'staticPublic'],
+		), includeStatic: true);
 	}
 
 	public function testClassReflectionFromClassStringWithSingleType(): void

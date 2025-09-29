@@ -12,6 +12,7 @@ use ReflectionProperty;
 use Shredio\PhpStanHelpers\Exception\EmptyTypeException;
 use Shredio\PhpStanHelpers\Exception\InvalidTypeException;
 use Shredio\PhpStanHelpers\Exception\NonConstantTypeException;
+use Shredio\PhpStanHelpers\Helper\PropertyPicker;
 
 /**
  * @api
@@ -211,31 +212,32 @@ final readonly class PhpStanReflectionHelper
 	}
 
 	/**
-	 * @param array<string, mixed>|null $pick
-	 * @return iterable<string, ExtendedPropertyReflection>
+	 * @return array<string, ExtendedPropertyReflection>
 	 */
 	public function getWritablePropertiesFromReflection(
 		ClassReflection $reflection,
-		?array $pick = null,
+		?PropertyPicker $picker = null,
 		bool $includeStatic = false,
-	): iterable
+	): array
 	{
 		$scope = new OutOfClassScope();
+		$properties = [];
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
 			if (!$includeStatic && $property->isStatic()) {
 				continue;
 			}
 
 			$propertyName = $property->getName();
-			if ($pick !== null && !isset($pick[$propertyName])) {
+			if ($picker?->shouldPick($propertyName) === false) {
 				continue;
 			}
 			if (!$this->isWritableFromOutside($property)) {
 				continue;
 			}
 
-			yield $propertyName => $reflection->getProperty($propertyName, $scope);
+			$properties[$propertyName] = $reflection->getProperty($propertyName, $scope);
 		}
+		return $properties;
 	}
 
 	/**
@@ -258,31 +260,31 @@ final readonly class PhpStanReflectionHelper
 	}
 
 	/**
-	 * @param array<string, bool>|null $pick
-	 * @return iterable<string, ExtendedPropertyReflection>
+	 * @return array<string, ExtendedPropertyReflection>
 	 */
 	public function getReadablePropertiesFromReflection(
 		ClassReflection $reflection,
-		?array $pick = null,
+		?PropertyPicker $picker = null,
 		bool $includeStatic = false,
-	): iterable
+	): array
 	{
 		$scope = new OutOfClassScope();
+		$properties = [];
 		foreach ($reflection->getNativeReflection()->getProperties() as $property) {
 			if (!$includeStatic && $property->isStatic()) {
 				continue;
 			}
 			$propertyName = $property->getName();
-			if ($pick !== null && !isset($pick[$propertyName])) {
+			if ($picker?->shouldPick($propertyName) === false) {
 				continue;
 			}
-
 			if (!$this->isReadableFromOutside($property)) {
 				continue;
 			}
 
-			yield $propertyName => $reflection->getProperty($propertyName, $scope);
+			$properties[$propertyName] = $reflection->getProperty($propertyName, $scope);
 		}
+		return $properties;
 	}
 
 	public function isReadableFromOutside(ReflectionProperty $property): bool

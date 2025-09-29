@@ -8,6 +8,9 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Type\Type;
 
+/**
+ * @api
+ */
 final readonly class PhpStanNodeHelper
 {
 
