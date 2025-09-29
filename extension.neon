@@ -1,3 +1,5 @@
 services:
 	-
 		class: Shredio\PhpStanHelpers\PhpStanReflectionHelper
+	-
+		class: Shredio\PhpStanHelpers\PhpStanNodeHelper
