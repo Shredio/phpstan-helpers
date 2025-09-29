@@ -2,6 +2,7 @@
 
 namespace Shredio\PhpStanHelpers\Helper;
 
+use LogicException;
 use Shredio\PhpStanHelpers\Exception\CannotCombinePickWithOmitException;
 
 /**
@@ -52,6 +53,15 @@ final readonly class PropertyPicker
 		}
 
 		return true;
+	}
+
+	public static function empty(): self
+	{
+		try {
+			return new self();
+		} catch (CannotCombinePickWithOmitException) {
+			throw new LogicException('This should never happen');
+		}
 	}
 
 }
